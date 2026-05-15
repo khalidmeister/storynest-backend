@@ -35,20 +35,25 @@ async function subscribe(req, res, next) {
 }
 
 async function purchase(req, res, next) {
-    const { bookId } = req.body;
-    const userId = req.user.id;
+    try {
+        const { bookId } = req.body;
+        const userId = req.user.id;
 
-    const { error } = await supabase
-        .from('user_library')
-        .insert([{ 
-            user_id: userId, 
-            book_id: bookId 
-        }]);
+        // Pakai upsert biar gak double record kalau user spam klik
+        const { error } = await supabase
+            .from('user_library')
+            .upsert({ 
+                user_id: userId, 
+                book_id: bookId 
+            }, { onConflict: 'user_id, book_id' });
 
-    if (error) return res.status(500).json({ error: error.message });
+        if (error) throw error;
 
-    res.json({ message: "Payment Success!" });
-
+        res.json({ message: "Payment Success!" });
+    } catch (err) {
+        console.error("Purchase Error:", err);
+        res.status(500).json({ error: err.message });
+    }
 }
 
 module.exports = { purchase, subscribe };
