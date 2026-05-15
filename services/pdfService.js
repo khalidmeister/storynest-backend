@@ -12,18 +12,18 @@ async function extractCoverFromPdf(pdfPath) {
   const outputName = path.basename(pdfPath, path.extname(pdfPath)) + "-cover";
 
   const options = {
-    density: 150,        // DPI - cukup untuk cover thumbnail
+    density: 72,        // DPI - cukup untuk cover thumbnail
     saveFilename: outputName,
     savePath: outputDir,
-    format: "png",
-    width: 600,
-    height: 800,
+    format: "jpg",
+    width: 300,
+    height: 400,
   };
 
   const converter = fromPath(pdfPath, options);
 
   // Ekstrak hanya halaman 1
-  const result = await converter(1, { responseType: "image" });
+  const result = await converter(1, { responseType: "base64" });
 
   if (!result || !result.path) {
     throw new Error("Failed to extract cover from PDF");
