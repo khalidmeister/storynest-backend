@@ -17,15 +17,29 @@ const storage = multer.diskStorage({
 
 // File type validation: hanya izinkan PDF
 const fileFilter = (req, file, cb) => {
-  const allowedMimes = ["application/pdf"];
-  const allowedExts = [".pdf"];
   const ext = path.extname(file.originalname).toLowerCase();
-
-  if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only PDF files are allowed"), false);
+  
+  if (file.fieldname === "file") {
+    // Validasi buat PDF
+    const allowedMimes = ["application/pdf"];
+    if (allowedMimes.includes(file.mimetype) && ext === ".pdf") {
+      return cb(null, true);
+    }
+    return cb(new Error("Field 'file' must be a PDF"), false);
   }
+
+  if (file.fieldname === "cover_file") {
+    // Validasi buat Cover Image
+    const allowedMimes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const allowedExts = [".jpg", ".jpeg", ".png", ".webp"];
+    if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
+      return cb(null, true);
+    }
+    return cb(new Error("Field 'cover' must be an image (JPG/PNG/WebP)"), false);
+  }
+
+  // Kalau ada field tak dikenal
+  cb(new Error("Unknown field"), false);
 };
 
 const upload = multer({

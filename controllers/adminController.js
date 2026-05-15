@@ -54,11 +54,17 @@ async function createBook(req, res, next) {
   let coverPath = null;
 
   try {
-    // 1. Validasi file PDF wajib ada
-    if (!req.file) {
-      return res.status(400).json({ error: "PDF file is required" });
+    console.log(req.files);
+    // 1. Validasi: Sekarang kita butuh DUA file (file & cover)
+    // Cek apakah req.files ada (karena pake upload.fields)
+    if (!req.files || !req.files['file'] || !req.files['cover_file']) {
+      return res.status(400).json({ 
+        error: "Both PDF file and Cover Image are required!" 
+      });
     }
-    pdfPath = req.file.path;
+
+    pdfPath = req.files['file'][0].path;
+    coverPath = req.files['cover_file'][0].path;
 
     // 2. Validasi metadata dengan Zod
     const parsed = bookSchema.safeParse(req.body);
@@ -67,17 +73,10 @@ async function createBook(req, res, next) {
     }
     const metadata = parsed.data;
 
-    // 3. Ekstrak cover dari halaman pertama PDF
-    // coverPath = await extractCoverFromPdf(pdfPath);
-    try {
-      coverPath = await extractCoverFromPdf(pdfPath);
-    } catch (extractErr) {
-      return res.status(400).json({ 
-        error: "Failed to extract cover. Make sure the PDF is valid." 
-      });
-    }
+    // --- STEP 3 (EKSTRAKSI) DIHAPUS ---
 
-    // 4. Upload PDF + cover ke Supabase Storage
+    // 4. Upload PDF + Cover Mentah ke Supabase Storage
+    // Fungsi uploadBookFiles lu harusnya tetep bisa jalan selama nerima 2 path
     const { pdf_filename, cover_filename } = await uploadBookFiles(pdfPath, coverPath);
 
     // 5. Simpan metadata ke tabel books
@@ -92,13 +91,13 @@ async function createBook(req, res, next) {
       .single();
 
     if (error) {
-      // Rollback: hapus file yang sudah terupload
+      // Rollback: hapus file yang sudah terupload kalau DB gagal
       await deleteBookFiles(pdf_filename, cover_filename);
       throw error;
     }
 
     res.status(201).json({
-      message: "Book created successfully",
+      message: "Book created successfully (The Pragmatic Way!)",
       data: {
         ...data,
         cover_url: getPublicUrl(COVER_BUCKET, cover_filename),
@@ -108,6 +107,7 @@ async function createBook(req, res, next) {
   } catch (err) {
     next(err);
   } finally {
+    // 6. Cleanup semua file temp di /tmp/
     cleanupTempFiles(pdfPath, coverPath);
   }
 }

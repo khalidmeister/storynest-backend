@@ -16,6 +16,7 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^1.4.5-lts.1",
     "pdf2pic": "^3.1.1",
+    "pdfjs-dist": "^5.7.284",
     "uuid": "^9.0.0",
     "zod": "^3.22.4"
   },

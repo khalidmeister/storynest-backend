@@ -21,7 +21,14 @@ router.get("/books", getAllBooks);
  *   - file: PDF file
  *   - title, author, category, description, price, age_min, age_max, is_published
  */
-router.post("/books", upload.single("file"), createBook);
+router.post(
+    "/books", 
+    upload.fields([
+        { name: 'file', maxCount: 1 },  // Field untuk PDF
+        { name: 'cover_file', maxCount: 1 } // Field untuk Image
+    ]), 
+    createBook
+);
 
 /**
  * PUT /admin/books/:id
@@ -30,7 +37,13 @@ router.post("/books", upload.single("file"), createBook);
  *   - file (opsional): PDF baru
  *   - field-field yang ingin diupdate
  */
-router.put("/books/:id", upload.single("file"), updateBook);
+router.put(
+    "/books/:id", 
+    upload.fields([
+        { name: 'file', maxCount: 1 }, 
+        { name: 'cover_file', maxCount: 1 }
+    ]),
+    updateBook);
 
 /**
  * DELETE /admin/books/:id
