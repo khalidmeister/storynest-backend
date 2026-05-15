@@ -1,6 +1,17 @@
 [phases.setup]
-nixPkgs = ["...", "nodejs"] # library yang sudah ada jangan dihapus
-aptPkgs = ["ghostscript", "graphicsmagick", "imagemagick"]
+nixPkgs = ["nodejs"]
+aptPkgs = [
+  "ghostscript",
+  "graphicsmagick",
+  "imagemagick",
+  "poppler-utils",
+  "libvips-dev",
+  "build-essential"
+]
 
 [phases.build]
 cmds = ["npm install", "npm run build"]
+
+[variables]
+# Kadang library perlu dikasih tahu path ke binary-nya
+GS_COMMAND = "gs"
