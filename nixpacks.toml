@@ -1,2 +1,6 @@
 [phases.setup]
-nixPkgs = ["graphicsmagick", "ghostscript"]
+nixPkgs = ["...", "nodejs"] # library yang sudah ada jangan dihapus
+aptPkgs = ["ghostscript", "graphicsmagick", "imagemagick"]
+
+[phases.build]
+cmds = ["npm install", "npm run build"]
