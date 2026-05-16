@@ -2,14 +2,14 @@
 
 REST API for **StoryNest** — a children's digital book platform. Built with Node.js, Express, and Supabase (Auth, Postgres, Storage).
 
-Handles user authentication, book catalog with paywall logic, subscriptions and purchases, and admin book management (PDF upload, cover extraction, CRUD).
+Handles user authentication, book catalog with paywall logic, subscriptions and purchases, and admin book management (PDF + cover upload, CRUD).
 
 ## Features
 
 - **Auth** — login and signup via Supabase Auth
 - **Catalog** — book list and details with `is_locked` based on subscription or purchase
 - **Payments** — subscribe (monthly/yearly) and one-off book purchase (mock; no payment gateway yet)
-- **Admin** — full book CRUD with PDF upload, automatic cover extraction, and Supabase Storage
+- **Admin** — full book CRUD with PDF upload, cover image upload, and Supabase Storage
 
 ## Project structure
 
@@ -30,9 +30,9 @@ storynest-backend/
 ├── middleware/
 │   ├── isAdmin.js                # JWT + is_admin check (admin routes)
 │   ├── authMiddleware.js         # JWT + profile (user routes)
-│   └── upload.js                 # Multer — PDF only, 50MB limit
+│   └── upload.js                 # Multer — PDF + cover image, 50MB limit
 ├── services/
-│   ├── pdfService.js             # Cover extraction from PDF (pdf2pic)
+│   ├── pdfService.js             # PDF helper service
 │   └── storageService.js         # Supabase Storage upload/delete/URLs
 ├── validators/
 │   └── bookValidator.js          # Zod schemas for book metadata
@@ -46,7 +46,7 @@ storynest-backend/
 
 - Node.js 18+
 - A [Supabase](https://supabase.com) project
-- **pdf2pic** system dependencies (cover extraction):
+- **pdf2pic** system dependencies (only needed if PDF cover extraction is used):
   - **macOS:** `brew install graphicsmagick ghostscript`
   - **Ubuntu/Debian:** `sudo apt-get install -y graphicsmagick ghostscript`
 
@@ -268,11 +268,13 @@ List all books (including unpublished) with signed PDF URLs and public cover URL
 
 #### `POST /admin/books`
 
-Create a book. Use **`multipart/form-data`**.
+Create a book. Use **`multipart/form-data`** and send two upload fields:
+
+- `file` — the book PDF file. Accepted format: `.pdf`.
+- `cover_file` — the book cover image. Accepted formats: `.jpg`, `.jpeg`, `.png`.
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `file` | File | yes | PDF only, max 50MB |
 | `title` | string | yes | |
 | `author` | string | yes | |
 | `category` | string | yes | |
@@ -281,8 +283,27 @@ Create a book. Use **`multipart/form-data`**.
 | `age_max` | number | yes | 0–18, ≥ `age_min` |
 | `description` | string | no | |
 | `is_published` | boolean | no | default: `false` |
+| `file` | File | yes | PDF only, max 50MB |
+| `cover_file` | File | yes | JPG/PNG only, max 50MB |
 
-Cover is extracted from the first page of the PDF and uploaded to Storage.
+Both files are uploaded to Supabase Storage. The PDF is stored in the `books-pdf` bucket, while the cover image is stored in the `books-cover` bucket.
+
+**Example request:**
+
+```bash
+curl -X POST http://localhost:3000/admin/books \
+  -H "Authorization: Bearer <admin_access_token>" \
+  -F "title=The Little Explorer" \
+  -F "author=StoryNest" \
+  -F "category=Adventure" \
+  -F "price=50000" \
+  -F "age_min=4" \
+  -F "age_max=8" \
+  -F "description=A short adventure story for children." \
+  -F "is_published=true" \
+  -F "file=@/path/to/book.pdf;type=application/pdf" \
+  -F "cover_file=@/path/to/cover.png;type=image/png"
+```
 
 #### `PUT /admin/books/:id`
 
@@ -303,7 +324,7 @@ Deletes the book row and removes PDF and cover files from Storage.
 - Admin: JWT validated via Supabase Auth + `is_admin` check
 - User routes: Bearer token decoded and profile loaded from `profiles`
 - Book metadata validated with Zod
-- Uploads restricted to PDF, 50MB max
+- Uploads restricted to PDF for `file` and JPG/PNG for `cover_file`, 50MB max
 - Storage rollback on failed DB writes; temp files cleaned after requests
 
 ## Scripts
